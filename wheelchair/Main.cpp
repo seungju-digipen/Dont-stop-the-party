@@ -14,8 +14,8 @@ int main()
     constexpr int screen_width = 800;
     constexpr int screen_height = 600;
 
-    constexpr int map_width = 1600;
-    constexpr int map_height = 1200;
+    constexpr int map_width = 2400;
+    constexpr int map_height = 1800;
 
     InitWindow(screen_width, screen_height, "Don't Stop the party");
     InitAudioDevice();
@@ -136,7 +136,7 @@ int main()
         EndTextureMode();
 
         BeginDrawing();
-        ClearBackground(DARKGRAY);
+        ClearBackground(BLACK);
 
         BeginMode2D(camera);
         DrawRectangle(0, 0, map_width, map_height, Fade(BLACK, 0.5f));
@@ -171,7 +171,7 @@ int main()
         EndBlendMode();
         EndMode2D();
 
-        DrawText("Welcome to Party", 10, 10, 20, BLACK);
+        DrawText("Welcome to Party", 10, 10, 20, WHITE);
 
         EndDrawing();
     }

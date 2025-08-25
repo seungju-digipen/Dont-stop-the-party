@@ -33,7 +33,7 @@ class Enemy
     void GotHit()
     {
         state = EnemyState::DANCING;
-        color = BLACK;
+        color = RED;
     }
 
   private:
