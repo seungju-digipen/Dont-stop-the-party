@@ -1,340 +1,185 @@
-#include "raylib.h"
-#include <iostream>
-#include <math.h>
-#include <vector>
 #include <algorithm>
+#include <iostream>
+#include <vector>
 
-class Character
+#include "Character.h"
+#include "Enemy.h"
+#include "PartyPopper.h"
+#include "Spotlight.h"
+#include "raylib.h"
+#include "raymath.h"
+
+int main()
 {
-public:
-	Character();
-	~Character();
+    constexpr int screen_width = 800;
+    constexpr int screen_height = 600;
 
-	Vector2 GetPosition() const { return position; };
-	Vector2 GetVelocity() const { return velocity; };
-	float GetRotation() const { return rotation; };
-	void SetPosition(Vector2 position);
-	float GetSpeed() const { return speed; };
-	void Draw();
-	void Update(float delta_time, int map_width, int map_height);
-	bool HasPopper() const { return popper; };
-	bool IsAlive() const { return alive; };
+    constexpr int map_width = 1600;
+    constexpr int map_height = 1200;
 
-private:
+    InitWindow(screen_width, screen_height, "Don't Stop the party");
+    InitAudioDevice();
+    SetTargetFPS(60);
 
-	Vector2 position;
-	Vector2 velocity{ 0,0 };
-	Rectangle hitbox;
-	float speed{ 200 };
-	float min_speed{ 200 };
-	float max_speed{ 500 };
-	float acceleration{ 100 };
-	float rotation{ 0.0 };
-	float rotation_speed{ 200 };
-	float size{ 40 };
-	bool popper;
-	bool alive;
-};
+    std::vector<Spotlight> spotlights;
+    RenderTexture2D light_texture = LoadRenderTexture(map_width, map_height);
 
-Character::Character()
-{
-	popper = true;
-	alive = true;
+    Character hero;
+    hero.SetPosition({map_width / 2.0f, map_height / 2.0f});
 
-	hitbox = {
-		(position.x - (size / 2)),
-		(position.y - (size / 2)),
-		size,
-		size
-	};
-}
+    std::vector<Enemy> enemies;
+    int number_of_enemies = 8;
+    for (int i = 0; i < number_of_enemies; i++)
+    {
+        Enemy new_enemy;
+        Vector2 random_position = {(float)GetRandomValue(0, map_width), (float)GetRandomValue(0, map_height)};
+        new_enemy.SetPosition(random_position);
+        enemies.push_back(new_enemy);
+    }
 
-Character::~Character()
-{
-}
+    std::vector<PartyPopper> partyPoppers;
 
-void Character::SetPosition(Vector2 new_position)
-{
-	position.x = new_position.x;
-	position.y = new_position.y;
-}
+    Camera2D camera = {0};
+    camera.target = hero.GetPosition();
+    camera.offset = {screen_width / 2.0f, screen_height / 2.0f};
+    camera.rotation = 0.0f;
+    camera.zoom = 1.0f;
+    float shake_timer = 0.0f;
+    float shake_intensity = 5.0f;
 
-void Character::Draw()
-{
-	Rectangle rec = { position.x, position.y, size, size };
-	Vector2 origin = { size / 2, size / 2 };
-	DrawRectanglePro(rec, origin, rotation, ORANGE);
-}
+    Music bgm = LoadMusicStream("resources/party2.mp3");
+    Sound shoot_sfx = LoadSound("resources/Boom1.wav");
+    PlayMusicStream(bgm);
 
-void Character::Update(float delta_time, int map_width, int map_height)
-{
-	if (alive) {
-		if (IsKeyDown(KEY_A)) {
-			rotation -= rotation_speed * delta_time;
-		}
-		if (IsKeyDown(KEY_D)) {
-			rotation += rotation_speed * delta_time;
-		}
-		if (IsKeyDown(KEY_W)) {
-			float radians = rotation * DEG2RAD;
+    while (!WindowShouldClose())
+    {
+        float delta_time = GetFrameTime();
 
-			Vector2 forward_vector = {
-				(float)cos(radians),
-				(float)sin(radians)
-			};
-			position.x += forward_vector.x * speed * delta_time;
-			position.y += forward_vector.y * speed * delta_time;
-		}
-		if (IsKeyDown(KEY_LEFT_SHIFT))
-		{
-			if (speed <= max_speed) {
-				speed += acceleration * delta_time;
-			}
-		}
-		if (!IsKeyDown(KEY_LEFT_SHIFT)) {
-			if (speed > min_speed) {
-				speed -= acceleration * delta_time;
-			}
-		}
-		hitbox.x = position.x;
-		hitbox.y = position.y;
+        if (GetRandomValue(0, 30) == 0)
+        {
+            spotlights.emplace_back(map_width, map_height);
+        }
 
-		
-		if (position.y > map_height)
-		{
-			position.y = 0;
-		}
-		else if (position.y < 0) {
-			position.y = map_height;
-		}
+        for (auto &light : spotlights)
+        {
+            light.Update(delta_time);
+        }
 
-		if (position.x > map_width)
-		{
-			position.x = 0;
-		}
-		else if (position.x < 0) {
-			position.x = map_width;
-		}
+        spotlights.erase(
+            std::remove_if(spotlights.begin(), spotlights.end(), [](const Spotlight &s) { return !s.IsActive(); }),
+            spotlights.end());
 
-		//std::cout << position.x << ", " << position.y << std::endl;
-	}
-}
+        UpdateMusicStream(bgm);
+        hero.Update(delta_time, map_width, map_height);
+        for (auto &enemy : enemies)
+        {
+            enemy.Update(delta_time, hero.GetPosition());
+        }
 
-class Enemy
-{
-public:
-	Enemy();
-	~Enemy();
+        if (IsKeyPressed(KEY_ENTER) && hero.HasPopper())
+        {
+            hero.UsePopper();
+            PartyPopper newPopper(hero.GetPosition(), hero.GetRotation(), hero.GetSpeed());
+            partyPoppers.push_back(newPopper);
+            PlaySound(shoot_sfx);
 
-	Vector2 GetPosition() const { return position; };
-	void SetPosition(Vector2 new_position);
-	void Draw();
-	void Update(float delta_time, Vector2 player_position); 
-	bool IsAlive() const { return alive; };
+            float radians = hero.GetRotation() * DEG2RAD;
+            Vector2 backward_vector = {-cosf(radians), -sinf(radians)};
+            hero.Knockback(backward_vector, 60.0f);
 
-private:
-	Vector2 position;
-	Vector2 velocity{ 0,0 };
-	Rectangle hitbox;
-	float speed{ 150 }; 
-	float size{ 40 };
-	bool alive;
-};
+            shake_timer = 0.2f;
+        }
+        if (shake_timer > 0.0f)
+        {
+            camera.offset.x = screen_width / 2.0f + GetRandomValue(-shake_intensity, shake_intensity);
+            camera.offset.y = screen_height / 2.0f + GetRandomValue(-shake_intensity, shake_intensity);
 
-Enemy::Enemy()
-{
-	alive = true;
-	hitbox = { position.x - size / 2, position.y - size / 2, size, size };
-}
+            shake_timer -= delta_time;
+        }
+        else
+        {
+            camera.offset.x = screen_width / 2.0f;
+            camera.offset.y = screen_height / 2.0f;
+        }
 
-Enemy::~Enemy()
-{
-}
+        camera.target = hero.GetPosition();
+        for (auto &popper : partyPoppers)
+        {
+            popper.Update(delta_time, map_width, map_height);
+        }
 
-void Enemy::SetPosition(Vector2 new_position)
-{
-	position = new_position;
-}
+        for (auto &popper : partyPoppers)
+        {
+            if (!popper.IsActive())
+                continue;
 
-void Enemy::Draw()
-{
-	if (alive) {
-		
-		Rectangle rec = { position.x, position.y, size, size };
-		Vector2 origin = { size / 2, size / 2 };
-		
-		DrawRectanglePro(rec, origin, 0.0f, GREEN);
-	}
-}
+            for (auto &enemy : enemies)
+            {
+                if (!enemy.IsChasing())
+                    continue;
+                if (CheckCollisionRecs(popper.GetHitbox(), enemy.GetHitbox()))
+                {
+                    enemy.GotHit();
+                    popper.Deactivate();
+                    hero.GetPopper();
+                    break;
+                }
+            }
+        }
 
-void Enemy::Update(float delta_time, Vector2 player_position)
-{
-	if (alive) {
-		
-	}
-}
+        BeginTextureMode(light_texture);
+        ClearBackground(BLANK);
+        for (auto &light : spotlights)
+        {
+            light.Draw(map_width, map_height);
+        }
+        EndTextureMode();
 
-class PartyPopper 
-{
-public:
-	PartyPopper(Vector2 start_position, float start_rotation, float initial_speed);
-	~PartyPopper();
+        BeginDrawing();
+        ClearBackground(DARKGRAY);
 
-	void Update(float delta_time, int map_width, int map_height);
-	void Draw();
-	bool IsActive() const { return active; };
+        BeginMode2D(camera);
+        DrawRectangle(0, 0, map_width, map_height, Fade(BLACK, 0.5f));
+        DrawCircle(map_width / 2, map_height / 2, 20, BLUE);
 
-private:
-	Vector2 position;
-	Vector2 velocity;
-	float rotation;
-	float speed{ 800 };
-	float size{ 60 };
-	Rectangle rect;
-	bool active;
-	float life_span{ 0.1f };
-};
+        hero.Draw();
+        for (auto &enemy : enemies)
+        {
+            enemy.Draw();
+        }
 
-PartyPopper::PartyPopper(Vector2 start_position, float start_rotation, float initial_speed)
-{
-	position = start_position;
-	rotation = start_rotation;
-	active = true;
+        for (auto &popper : partyPoppers)
+        {
+            popper.Draw();
+        }
+        partyPoppers.erase(std::remove_if(partyPoppers.begin(), partyPoppers.end(),
+                                          [](const PartyPopper &p) { return !p.IsActive(); }),
+                           partyPoppers.end());
+        BeginBlendMode(BLEND_ADDITIVE);
 
-	float radians = rotation * DEG2RAD;
-	velocity.x = cos(radians) * speed;
-	velocity.y = sin(radians) * speed;
-}
+        Rectangle sourceRec = {0, 0, (float)light_texture.texture.width, (float)-light_texture.texture.height};
 
-PartyPopper::~PartyPopper()
-{
-}
+        for (int i = -1; i <= 1; i++)
+        {
+            for (int j = -1; j <= 1; j++)
+            {
+                Vector2 position = {(float)(i * map_width), (float)(j * map_height)};
+                DrawTextureRec(light_texture.texture, sourceRec, position, WHITE);
+            }
+        }
 
-void PartyPopper::Update(float delta_time, int map_width, int map_height)
-{
-	if (active)
-	{
-		life_span -= delta_time;
-		if (life_span <= 0.0f)
-		{
-			active = false;
-			return;
-		}
-		position.x += velocity.x * delta_time;
-		position.y += velocity.y * delta_time;
+        EndBlendMode();
+        EndMode2D();
 
-		if (position.x < 0 || position.x > map_width || position.y < 0 || position.y > map_height)
-		{
-			active = false;
-		}
-	}
-}
+        DrawText("Welcome to Party", 10, 10, 20, BLACK);
 
-void PartyPopper::Draw()
-{
-	if (active)
-	{
-		rect = { position.x, position.y, size, size };
-		Vector2 origin = { size / 2, size / 2 };
-		DrawRectanglePro(rect, origin, rotation, PINK);
-	}
-}
+        EndDrawing();
+    }
 
-int main() {
-	constexpr int screen_width = 1600;
-	constexpr int screen_height = 1000;
+    CloseWindow();
+    UnloadMusicStream(bgm);
+    UnloadSound(shoot_sfx);
+    CloseAudioDevice();
 
-	constexpr int map_width = 3200;
-	constexpr int map_height = 2000;
-
-	InitWindow(screen_width, screen_height, "Don't Stop the party");
-	InitAudioDevice();
-	SetTargetFPS(60);
-
-	Character hero;
-	hero.SetPosition({ map_width / 2.0f, map_height / 2.0f });
-
-	std::vector<Enemy> enemies;
-	int number_of_enemies = 8;
-	for (int i = 0; i < number_of_enemies; i++) {
-		Enemy new_enemy;
-		Vector2 random_position = {
-			(float)GetRandomValue(0, map_width),
-			(float)GetRandomValue(0, map_height)
-		};
-		new_enemy.SetPosition(random_position);
-		enemies.push_back(new_enemy); 
-	}
-
-	std::vector<PartyPopper> partyPoppers;
-
-	Camera2D camera = { 0 };
-	camera.target = hero.GetPosition();
-	camera.offset = { screen_width / 2.0f, screen_height / 2.0f };
-	camera.rotation = 0.0f;
-	camera.zoom = 1.0f;
-
-	Music bgm = LoadMusicStream("resources/party2.mp3");
-	Sound shoot_sfx = LoadSound("resources/Boom1.wav");
-	PlayMusicStream(bgm);
-
-	while (!WindowShouldClose()) {
-		float delta_time = GetFrameTime();
-		//UpdateMusicStream(bgm);
-		hero.Update(delta_time, map_width, map_height);
-		for (auto& enemy : enemies) {
-			enemy.Update(delta_time, hero.GetPosition());
-		}
-
-		if (IsKeyPressed(KEY_ENTER))
-		{
-			PartyPopper newPopper(hero.GetPosition(), hero.GetRotation(), hero.GetSpeed());
-			partyPoppers.push_back(newPopper);
-			PlaySound(shoot_sfx);
-		}
-
-		for (auto& popper : partyPoppers)
-		{
-			popper.Update(delta_time, map_width, map_height);
-		}
-
-		camera.target = hero.GetPosition();
-
-		BeginDrawing();
-		ClearBackground(RAYWHITE);
-
-		BeginMode2D(camera);
-
-	
-		DrawRectangle(0, 0, map_width, map_height, Fade(LIGHTGRAY, 0.5f));
-
-	
-		DrawCircle(map_width/2, map_height/2, 20, BLUE);
-
-		hero.Draw();
-		for (auto& enemy : enemies) {
-			enemy.Draw();
-		}
-
-		for (auto& popper : partyPoppers)
-		{
-			popper.Draw();
-		}
-		partyPoppers.erase(
-			std::remove_if(partyPoppers.begin(), partyPoppers.end(), [](const PartyPopper& p) {
-				return !p.IsActive();
-				}),
-			partyPoppers.end()
-		);
-		EndMode2D();
-
-		DrawText("Welcome to Party", 10, 10, 20, BLACK);
-
-		EndDrawing();
-	}
-	CloseWindow();
-	UnloadMusicStream(bgm);
-	UnloadSound(shoot_sfx);
-	CloseAudioDevice();
-	return 0;
+    return 0;
 }
