@@ -44,5 +44,11 @@
     <ClInclude Include="Spotlight.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="AnimationData.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Particle.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

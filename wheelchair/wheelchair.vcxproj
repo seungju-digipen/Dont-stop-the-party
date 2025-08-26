@@ -130,8 +130,10 @@
     <ClCompile Include="Spotlight.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AnimationData.h" />
     <ClInclude Include="Character.h" />
     <ClInclude Include="Enemy.h" />
+    <ClInclude Include="Particle.h" />
     <ClInclude Include="PartyPopper.h" />
     <ClInclude Include="Spotlight.h" />
   </ItemGroup>
