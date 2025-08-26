@@ -5,7 +5,7 @@
 
 enum class EnemyState
 {
-	CHASING,
+	ACTIVE,
 	DANCING
 };
 
@@ -27,9 +27,9 @@ public:
 	void Draw();
 	void Update(float delta_time, Vector2 player_position);
 
-	bool IsChasing() const
+	bool IsActive() const
 	{
-		return state == EnemyState::CHASING;
+		return state == EnemyState::ACTIVE;
 	}
 	void GotHit()
 	{
@@ -44,6 +44,10 @@ private:
 	float speed{ 100 };
 	float size{ 40 };
 	Color color{ GREEN };
-	EnemyState state{ EnemyState::CHASING };
+	EnemyState state{ EnemyState::ACTIVE };
 	float rotation{ 0.0f };
+
+	Vector2 start_pos;
+    Vector2 end_pos;
+    bool moving_to_end{true};
 };

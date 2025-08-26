@@ -49,10 +49,19 @@ public:
 		popper = true;
 	}
 	void Knockback(Vector2 direction, float force);
+
 	bool IsAlive() const
 	{
 		return alive;
 	}
+
+	void SetAlive(bool status)
+	{
+		alive = status;
+	}
+
+	void LoadResources();
+	void UnloadResources();
 
 private:
 	Vector2 position;
@@ -75,4 +84,5 @@ private:
 	float frame_height{ 64.0f };
 	bool popper;
 	bool alive;
+
 };

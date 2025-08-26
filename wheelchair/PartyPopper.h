@@ -22,6 +22,14 @@ public:
 	{
 		active = false;
 	}
+	void SetHit()
+	{
+		hit_target = true;
+	}
+	bool DidHit() const
+	{
+		return hit_target;
+	}
 
 private:
 	Vector2 position;
@@ -39,4 +47,5 @@ private:
 	float frame_width{ 32.0f };
 	float frame_height{ 32.0f };
 	float life_span{ 1.0f };
+	bool hit_target{ false };
 };
