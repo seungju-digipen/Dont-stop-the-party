@@ -1,0 +1,44 @@
+# Created by https://www.toptal.com/developers/gitignore/api/c++
+# Edit at https://www.toptal.com/developers/gitignore?templates=c++
+
+### C++ ###
+# Prerequisites
+*.d
+##folder
+x64/
+.vs/
+.vs/wheelchair/v17/
+wheelchair/x64/
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+*.csv
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+CS230/Trace.log
+# End of https://www.toptal.com/developers/gitignore/api/c++
