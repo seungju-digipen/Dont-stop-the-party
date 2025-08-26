@@ -24,6 +24,7 @@
     <ProjectGuid>{1e082cba-2816-4ed1-9580-d36ae05b5fa6}</ProjectGuid>
     <RootNamespace>wheelchair</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>2025-Summer-GAMEJAM</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
