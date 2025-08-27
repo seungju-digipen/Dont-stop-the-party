@@ -1,5 +1,20 @@
 #include "Spotlight.h"
 
+Spotlight::Spotlight(int map_width, int map_height)
+{
+	position = { (float)GetRandomValue(0, map_width), (float)GetRandomValue(0, map_height) };
+
+	radius = (float)GetRandomValue(50, 100);
+	life_span = (float)GetRandomValue(10, 50) / 10.0f;
+	float hue = (float)GetRandomValue(0, 255);
+	float saturation = (float)GetRandomValue(30, 90) / 100.0f;
+	float value = 0.95f;
+
+	color = ColorFromHSV(hue, saturation, value);
+
+	alpha = 0.0f;
+}
+
 void Spotlight::Update(float delta_time)
 {
 	life_span -= delta_time;

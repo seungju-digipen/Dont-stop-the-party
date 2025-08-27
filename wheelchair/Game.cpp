@@ -48,6 +48,11 @@ void Game::InitGame()
 
 void Game::ResetGame()
 {
+	enemies.clear();
+	partyPoppers.clear();
+	spotlights.clear();
+	hero.SetAlive(true);
+	hero.GetPopper();
 	InitGame();
 }
 
@@ -65,7 +70,7 @@ void Game::Update()
 	float delta_time = GetFrameTime();
 	UpdateMusicStream(bgm);
 
-	if (GetRandomValue(0, 30) == 0)
+	if (GetRandomValue(0, 1) == 0)
 	{
 		spotlights.emplace_back(map_width, map_height);
 	}
@@ -82,6 +87,10 @@ void Game::Update()
 		hero.Knockback(backward_vector, 60.0f);
 
 		shake_timer = 0.2f;
+	}
+
+	if (IsKeyPressed(KEY_R)) {
+		ResetGame();
 	}
 
 	hero.Update(delta_time, map_width, map_height);
@@ -141,7 +150,6 @@ void Game::Update()
 	{
 		camera.offset.x = screen_width / 2.0f + GetRandomValue(-shake_intensity, shake_intensity);
 		camera.offset.y = screen_height / 2.0f + GetRandomValue(-shake_intensity, shake_intensity);
-
 		shake_timer -= delta_time;
 	}
 	else
@@ -167,13 +175,13 @@ void Game::Draw()
 
 	BeginMode2D(camera);
 
-	for (int x = 0; x <= map_width * 2; x += grid_spacing)
+	for (int x = 0; x <= map_width; x += grid_spacing)
 	{
-		DrawLine(x, 0, x, map_height * 2, grid_color);
+		DrawLine(x, 0, x, map_height, grid_color);
 	}
-	for (int y = 0; y <= map_height * 2; y += grid_spacing)
+	for (int y = 0; y <= map_height; y += grid_spacing)
 	{
-		DrawLine(0, y, map_width * 2, y, grid_color);
+		DrawLine(0, y, map_width, y, grid_color);
 	}
 
 	for (auto& enemy : enemies)

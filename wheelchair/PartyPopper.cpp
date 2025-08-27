@@ -44,8 +44,6 @@ void PartyPopper::Update(float delta_time, int map_width, int map_height)
 		active = false;
 		return;
 	}
-	/*position.x += velocity.x * delta_time;
-	position.y += velocity.y * delta_time;*/
 }
 
 void PartyPopper::Draw()
