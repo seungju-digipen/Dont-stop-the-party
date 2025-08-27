@@ -1,7 +1,7 @@
 #include "Game.h"
 
 Game::Game()
-	: screen_width(800), screen_height(600), map_width(4800), map_height(3600), number_of_enemies(50),
+	: screen_width(800), screen_height(600), map_width(2400), map_height(1800), number_of_enemies(50),
 	shake_timer(0.0f), shake_intensity(15.0f)
 {
 	InitWindow(screen_width, screen_height, "Don't Stop the party");
@@ -38,8 +38,9 @@ void Game::InitGame()
 	hero.SetPosition({ map_width / 2.0f, map_height / 2.0f });
 	for (int i = 0; i < number_of_enemies; i++)
 	{
+
 		Enemy new_enemy;
-		Vector2 random_position = { (float)GetRandomValue(0, map_width), (float)GetRandomValue(0, map_height) };
+		Vector2 random_position = { (float)GetRandomValue(new_enemy.GetGenRagne(), map_width - new_enemy.GetGenRagne()), (float)GetRandomValue(new_enemy.GetGenRagne(), map_height - new_enemy.GetGenRagne()) };
 		new_enemy.SetPosition(random_position);
 		enemies.push_back(new_enemy);
 	}
@@ -101,7 +102,7 @@ void Game::Update()
 	for (auto& enemy : enemies)
 	{
 
-		enemy.Update(delta_time);
+		enemy.Update(delta_time, map_width, map_height);
 	}
 	for (auto& popper : partyPoppers)
 	{
@@ -123,7 +124,14 @@ void Game::Update()
 				enemy.GotHit();
 				popper.Deactivate();
 				hero.GetPopper();
-				score += 1000;
+				if (hero.GetSpeed()>hero.GetMinSpeed())
+				{
+					score += (1000+(((int)hero.GetSpeed()/10)*10));
+				}
+				else 
+				{
+					score += 500;
+				}
 				break;
 			}
 		}
@@ -177,11 +185,13 @@ void Game::Draw()
 
 	for (int x = 0; x <= map_width; x += grid_spacing)
 	{
-		DrawLine(x, 0, x, map_height, grid_color);
+		//DrawLine(x, 0, x, map_height, grid_color);
+		DrawLineEx({ (float)x,0 }, { (float)x, (float)map_height }, 5, grid_color);
 	}
 	for (int y = 0; y <= map_height; y += grid_spacing)
 	{
-		DrawLine(0, y, map_width, y, grid_color);
+		//DrawLine(0, y, map_width, y, grid_color);
+		DrawLineEx({ 0, (float)y }, { (float)map_width, (float)y }, 5, grid_color);
 	}
 
 	for (auto& enemy : enemies)

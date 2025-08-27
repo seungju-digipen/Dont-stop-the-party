@@ -43,27 +43,25 @@ void Character::Update(float delta_time, int map_width, int map_height)
 	{
 		rotation += rotation_speed * delta_time;
 	}
-	if (IsKeyDown(KEY_W))
-	{
-		if (IsKeyDown(KEY_LEFT_SHIFT))
-		{
-			current_anim_state = CharacterAnimState::RUN;
-		}
-		else
-		{
-			current_anim_state = HasPopper() ? CharacterAnimState::WALK_POPPER : CharacterAnimState::WALK;
-		}
+	//if (IsKeyDown(KEY_W))
+	//{
+	//}
+	//if (IsKeyDown(KEY_LEFT_SHIFT))
+	//{
+	//	current_anim_state = CharacterAnimState::WALK_POPPER;
+	//}
+	//else
+	//{
+	//	current_anim_state = CharacterAnimState::RUN;
+	//	//current_anim_state = HasPopper() ? CharacterAnimState::WALK_POPPER : CharacterAnimState::WALK;
+	//}
 
-		float radians = (rotation - 90.0f) * DEG2RAD;
+	float radians = (rotation - 90.0f) * DEG2RAD;
 
-		Vector2 forward_vector = { (float)cos(radians), (float)sin(radians) };
-		position.x += forward_vector.x * speed * delta_time;
-		position.y += forward_vector.y * speed * delta_time;
-	}
-	else
-	{
-		current_anim_state = HasPopper() ? CharacterAnimState::WALK_POPPER : CharacterAnimState::IDLE;
-	}
+	Vector2 forward_vector = { (float)cos(radians), (float)sin(radians) };
+	position.x += forward_vector.x * speed * delta_time;
+	position.y += forward_vector.y * speed * delta_time;
+
 	if (current_anim_state != prev_anim_state)
 	{
 		current_frame = 0;
@@ -83,18 +81,20 @@ void Character::Update(float delta_time, int map_width, int map_height)
 		}
 	}
 
-	if (IsKeyDown(KEY_LEFT_SHIFT))
+	if ((IsKeyDown(KEY_SPACE)))
 	{
-		if (speed <= max_speed)
-		{
-			speed += acceleration * delta_time;
-		}
-	}
-	if (!IsKeyDown(KEY_LEFT_SHIFT))
-	{
+		current_anim_state = CharacterAnimState::WALK_POPPER;
 		if (speed > min_speed)
 		{
 			speed -= acceleration * delta_time;
+		}
+	}
+	if (!(IsKeyDown(KEY_SPACE)))
+	{
+		current_anim_state = CharacterAnimState::RUN;
+		if (speed <= max_speed)
+		{
+			speed += acceleration * delta_time;
 		}
 	}
 	hitbox.x = position.x;
