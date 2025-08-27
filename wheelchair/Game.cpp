@@ -1,8 +1,8 @@
 #include "Game.h"
 
 Game::Game()
-    : screen_width(800), screen_height(600), map_width(2400), map_height(1800), number_of_enemies(8), shake_timer(0.0f),
-      shake_intensity(15.0f)
+    : screen_width(800), screen_height(600), map_width(2400), map_height(1800), number_of_enemies(30),
+      shake_timer(0.0f), shake_intensity(15.0f)
 {
     InitWindow(screen_width, screen_height, "Don't Stop the party");
     InitAudioDevice();
@@ -159,7 +159,16 @@ void Game::Draw()
     ClearBackground(BLACK);
 
     BeginMode2D(camera);
-    DrawCircle(map_width / 2, map_height / 2, 20, BLUE);
+
+    for (int x = -map_width; x <= map_width * 2; x += grid_spacing)
+    {
+        DrawLine(x, -map_height, x, map_height * 2, grid_color);
+    }
+    for (int y = -map_height; y <= map_height * 2; y += grid_spacing)
+    {
+        DrawLine(-map_width, y, map_width * 2, y, grid_color);
+    }
+    // DrawCircle(map_width / 2, map_height / 2, 20, BLUE);
 
     for (auto &enemy : enemies)
     {

@@ -22,6 +22,9 @@ class Game
     void Draw();
     void InitGame();
 
+    const int grid_spacing = 100;
+    const Color grid_color = {50, 50, 50, 255};
+
     int screen_width, screen_height;
     int map_width, map_height;
 
@@ -35,7 +38,6 @@ class Game
     float shake_timer = 0.0f;
     float shake_intensity = 15.0f;
 
-    // --- ¿¡¼Â ---
     Texture2D explosion_texture;
     Music bgm;
     Sound shoot_sfx;

@@ -8,7 +8,7 @@ class Spotlight
     {
         position = {(float)GetRandomValue(0, map_width), (float)GetRandomValue(0, map_height)};
 
-        radius = (float)GetRandomValue(50, 250);
+        radius = (float)GetRandomValue(50, 100);
         life_span = (float)GetRandomValue(10, 50) / 10.0f;
         float hue = (float)GetRandomValue(50, 65);
         float saturation = (float)GetRandomValue(5, 70) / 100.0f;
