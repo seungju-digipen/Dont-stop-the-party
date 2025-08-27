@@ -81,7 +81,7 @@ class Character
     float max_speed{500};
     float acceleration{100};
     float rotation{0.0};
-    float rotation_speed{200};
+    float rotation_speed{250};
     float size{40};
     float speed{200};
     float frame_timer{0.0f};

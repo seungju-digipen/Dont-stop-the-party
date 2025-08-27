@@ -9,6 +9,7 @@
 #include "Spotlight.h"
 #include "raylib.h"
 #include "raymath.h"
+#include "Particle.h" 
 
 class Game
 {
@@ -22,7 +23,7 @@ class Game
     void Draw();
     void InitGame();
     void ResetGame();
-
+    void SpawnConfetti(Vector2 position);
     const int grid_spacing = 100;
     const Color grid_color = {50, 50, 50, 255};
 
@@ -30,12 +31,13 @@ class Game
     int map_width, map_height;
 
     int score;
-
+    const float gravity = 400.0f;
     Character hero;
     std::vector<Enemy> enemies;
     int number_of_enemies;
     std::vector<PartyPopper> partyPoppers;
     std::vector<Spotlight> spotlights;
+    std::vector<ConfettiParticle> confettiParticles;
 
     Camera2D camera;
     float shake_timer = 0.0f;

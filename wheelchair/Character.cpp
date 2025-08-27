@@ -135,6 +135,7 @@ void Character::Draw()
 	Vector2 origin = { size / 2, size / 2 };
 
 	DrawTexturePro(sprite_sheet, source_rec, dest_rec, origin, rotation, WHITE);
+	
 }
 
 void Character::Knockback(Vector2 direction, float force)

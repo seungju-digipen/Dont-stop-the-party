@@ -52,9 +52,34 @@ void Game::ResetGame()
 	enemies.clear();
 	partyPoppers.clear();
 	spotlights.clear();
+	confettiParticles.clear();
 	hero.SetAlive(true);
 	hero.GetPopper();
+
+
+	SeekMusicStream(bgm, 0.0f);
+
 	InitGame();
+}
+
+void Game::SpawnConfetti(Vector2 position)
+{
+	for (int i = 0; i < 10; i++)
+	{
+		float angle = (float)GetRandomValue(0, 360) * DEG2RAD;
+		float speed = (float)GetRandomValue(50, 300);
+
+		ConfettiParticle p;
+		p.position = position;
+		p.velocity = { cosf(angle) * speed, sinf(angle) * speed };
+		p.rotation = (float)GetRandomValue(0, 360);
+		p.angular_velocity = (float)GetRandomValue(-300, 300);
+		p.size = (float)GetRandomValue(5, 15);
+		p.life_span = (float)GetRandomValue(5, 20) / 10.0f;
+		p.color = ColorFromHSV((float)GetRandomValue(0, 360), 0.8f, 0.95f);
+
+		confettiParticles.push_back(p);
+	}
 }
 
 void Game::Run()
@@ -71,87 +96,111 @@ void Game::Update()
 	float delta_time = GetFrameTime();
 	UpdateMusicStream(bgm);
 
-	if (GetRandomValue(0, 1) == 0)
-	{
-		spotlights.emplace_back(map_width, map_height);
-	}
-
-	if (IsKeyPressed(KEY_ENTER) && hero.HasPopper())
-	{
-		hero.UsePopper();
-		PartyPopper newPopper(hero.GetPosition(), hero.GetRotation(), hero.GetSpeed(), explosion_texture);
-		partyPoppers.push_back(newPopper);
-		PlaySound(shoot_sfx);
-
-		float radians = (hero.GetRotation() - 90.0f) * DEG2RAD;
-		Vector2 backward_vector = { -cosf(radians), -sinf(radians) };
-		hero.Knockback(backward_vector, 60.0f);
-
-		shake_timer = 0.2f;
-	}
-
 	if (IsKeyPressed(KEY_R)) {
 		ResetGame();
 	}
 
-	hero.Update(delta_time, map_width, map_height);
-	for (auto& light : spotlights)
+	if (hero.IsAlive())
 	{
-		light.Update(delta_time);
-	}
-	for (auto& enemy : enemies)
-	{
-
-		enemy.Update(delta_time, map_width, map_height);
-	}
-	for (auto& popper : partyPoppers)
-	{
-		popper.Update(delta_time, map_width, map_height);
-	}
-
-	for (auto& popper : partyPoppers)
-	{
-		if (!popper.IsActive())
-			continue;
-
-		for (auto& enemy : enemies)
+		if (IsKeyPressed(KEY_ENTER) && hero.HasPopper())
 		{
-			if (!enemy.IsActive())
-				continue;
-			if (CheckCollisionRecs(popper.GetHitbox(), enemy.GetHitbox()))
-			{
-				popper.SetHit();
-				enemy.GotHit();
-				popper.Deactivate();
-				hero.GetPopper();
-				if (hero.GetSpeed()>hero.GetMinSpeed())
-				{
-					score += (1000+(((int)hero.GetSpeed()/10)*10));
-				}
-				else 
-				{
-					score += 500;
-				}
-				break;
-			}
+			hero.UsePopper();
+			PartyPopper newPopper(hero.GetPosition(), hero.GetRotation(), hero.GetSpeed(), explosion_texture);
+			partyPoppers.push_back(newPopper);
+			PlaySound(shoot_sfx);
+			SpawnConfetti(hero.GetPosition());
+			float radians = (hero.GetRotation() - 90.0f) * DEG2RAD;
+			Vector2 backward_vector = { -cosf(radians), -sinf(radians) };
+			hero.Knockback(backward_vector, 60.0f);
+
+			shake_timer = 0.2f;
 		}
 	}
+
+	if (GetRandomValue(0, 30) == 0)
+	{
+		spotlights.emplace_back(map_width, map_height);
+	}
+
+	hero.Update(delta_time, map_width, map_height);
+	for (auto& light : spotlights) { light.Update(delta_time); }
+	for (auto& enemy : enemies) { enemy.Update(delta_time, map_width, map_height); }
+	for (auto& popper : partyPoppers) { popper.Update(delta_time, map_width, map_height); }
+	for (auto& p : confettiParticles)
+	{
+
+		p.position.x += p.velocity.x * delta_time;
+		p.position.y += p.velocity.y * delta_time;
+
+
+		p.velocity.y += gravity * delta_time;
+
+
+		p.rotation += p.angular_velocity * delta_time;
+
+
+		p.life_span -= delta_time;
+	}
+
+
+	confettiParticles.erase(
+		std::remove_if(confettiParticles.begin(), confettiParticles.end(), [](const ConfettiParticle& p) {
+			return p.life_span <= 0.0f;
+			}),
+		confettiParticles.end()
+	);
+
+
+
+	if (hero.IsAlive())
+	{
+		for (auto& popper : partyPoppers)
+		{
+			if (!popper.IsActive()) continue;
+
+			for (auto& enemy : enemies)
+			{
+				if (!enemy.IsActive()) continue;
+
+				if (CheckCollisionRecs(popper.GetHitbox(), enemy.GetHitbox()))
+				{
+					popper.SetHit();
+					enemy.GotHit();
+					hero.GetPopper();
+					score += (hero.GetSpeed() > hero.GetMinSpeed()) ? (1000 + (((int)hero.GetSpeed() / 10) * 10)) : 500;
+					break;
+				}
+			}
+		}
+
+	}
+
 
 	spotlights.erase(
 		std::remove_if(spotlights.begin(), spotlights.end(), [](const Spotlight& s) { return !s.IsActive(); }),
 		spotlights.end());
 
+
 	for (int i = partyPoppers.size() - 1; i >= 0; i--)
 	{
 		if (!partyPoppers[i].IsActive())
 		{
+
 			if (!partyPoppers[i].DidHit())
 			{
 				hero.SetAlive(false);
 			}
+
 			partyPoppers.erase(partyPoppers.begin() + i);
 		}
 	}
+
+	confettiParticles.erase(
+		std::remove_if(confettiParticles.begin(), confettiParticles.end(), [](const ConfettiParticle& p) {
+			return p.life_span <= 0.0f;
+			}),
+		confettiParticles.end()
+	);
 
 	camera.target = hero.GetPosition();
 	if (shake_timer > 0.0f)
@@ -166,43 +215,31 @@ void Game::Update()
 		camera.offset.y = screen_height / 2.0f;
 	}
 }
-
 void Game::Draw()
 {
-
-	BeginTextureMode(light_texture);
-	ClearBackground(BLANK);
-	for (auto& light : spotlights)
-	{
-		light.Draw(map_width, map_height);
-	}
-	EndTextureMode();
-
 	BeginDrawing();
 	ClearBackground(BLACK);
 
 	BeginMode2D(camera);
 
+
 	for (int x = 0; x <= map_width; x += grid_spacing)
 	{
-		//DrawLine(x, 0, x, map_height, grid_color);
-		DrawLineEx({ (float)x,0 }, { (float)x, (float)map_height }, 5, grid_color);
+		DrawLineEx({ (float)x, 0 }, { (float)x, (float)map_height }, 2, grid_color);
 	}
 	for (int y = 0; y <= map_height; y += grid_spacing)
 	{
-		//DrawLine(0, y, map_width, y, grid_color);
-		DrawLineEx({ 0, (float)y }, { (float)map_width, (float)y }, 5, grid_color);
+		DrawLineEx({ 0, (float)y }, { (float)map_width, (float)y }, 2, grid_color);
 	}
 
-	for (auto& enemy : enemies)
-	{
-		enemy.Draw();
-	}
-	hero.Draw();
+	for (auto& enemy : enemies) { enemy.Draw(); }
+	if (hero.IsAlive()) { hero.Draw(); }
+	for (auto& popper : partyPoppers) { popper.Draw(); }
 
-	for (auto& popper : partyPoppers)
+	for (const auto& p : confettiParticles)
 	{
-		popper.Draw();
+		Rectangle particle_rec = { p.position.x, p.position.y, p.size, p.size };
+		DrawRectanglePro(particle_rec, { p.size / 2, p.size / 2 }, p.rotation, p.color);
 	}
 
 	BeginBlendMode(BLEND_ADDITIVE);
@@ -218,10 +255,21 @@ void Game::Draw()
 		}
 	}
 
+	for (const auto& p : confettiParticles)
+	{
+		Rectangle particle_rec = { p.position.x, p.position.y, p.size, p.size };
+		DrawRectanglePro(particle_rec, { p.size / 2, p.size / 2 }, p.rotation, p.color);
+	}
+
 	EndBlendMode();
 	EndMode2D();
 
 	DrawText(TextFormat("Score: %d", score), 10, 10, 40, WHITE);
+	if (!hero.IsAlive())
+	{
+		DrawText("GAME OVER", GetScreenWidth() / 2 - MeasureText("GAME OVER", 40) / 2, GetScreenHeight() / 2 - 20, 40, RED);
+		DrawText("Press [R] to Restart", GetScreenWidth() / 2 - MeasureText("Press [R] to Restart", 20) / 2, GetScreenHeight() / 2 + 30, 20, GRAY);
+	}
 
 	EndDrawing();
 }
