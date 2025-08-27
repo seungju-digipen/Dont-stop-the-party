@@ -25,7 +25,7 @@ public:
 	}
 	void SetPosition(Vector2 new_position);
 	void Draw();
-	void Update(float delta_time, Vector2 player_position);
+	void Update(float delta_time);
 
 	bool IsActive() const
 	{
@@ -41,6 +41,7 @@ private:
 	Vector2 position;
 	Vector2 velocity{ 0, 0 };
 	Rectangle hitbox;
+	Rectangle screen;
 	float speed{ 100 };
 	float size{ 40 };
 	Color color{ GREEN };

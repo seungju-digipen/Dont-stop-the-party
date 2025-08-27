@@ -21,12 +21,15 @@ class Game
     void Update();
     void Draw();
     void InitGame();
+    void ResetGame();
 
     const int grid_spacing = 100;
     const Color grid_color = {50, 50, 50, 255};
 
     int screen_width, screen_height;
     int map_width, map_height;
+
+    int score;
 
     Character hero;
     std::vector<Enemy> enemies;
@@ -37,6 +40,7 @@ class Game
     Camera2D camera;
     float shake_timer = 0.0f;
     float shake_intensity = 15.0f;
+    //Rectangle camera_rect;
 
     Texture2D explosion_texture;
     Music bgm;
