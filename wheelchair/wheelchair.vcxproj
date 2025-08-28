@@ -136,6 +136,7 @@
     <ClInclude Include="Character.h" />
     <ClInclude Include="Enemy.h" />
     <ClInclude Include="Game.h" />
+    <ClInclude Include="GameScreen.h" />
     <ClInclude Include="Particle.h" />
     <ClInclude Include="PartyPopper.h" />
     <ClInclude Include="Spotlight.h" />

@@ -56,5 +56,5 @@ void PartyPopper::Draw()
 	Rectangle dest_rec = { position.x, position.y, size, size };
 	Vector2 origin = { size / 2, size / 2 };
 	DrawTexturePro(sprite_sheet, source_rec, dest_rec, origin, 0.0f, WHITE);
-	DrawRectangleLinesEx(rect, 10, WHITE);
+	DrawRectangleLinesEx(rect, 10, {255,255,255,50});
 }

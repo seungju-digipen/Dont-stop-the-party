@@ -1,0 +1,10 @@
+#pragma once
+enum class GameScreen {
+	MAIN_MENU,
+	HOW_TO_PLAY,
+	GAMEPLAY,
+	NAME_ENTRY,
+	OPTIONS,
+	RANKING_SCREEN,
+	EXIT
+};

@@ -11,7 +11,6 @@ Enemy::~Enemy()
 
 void Enemy::SetPosition(Vector2 new_position)
 {
-	//gen_range = 400;
 	position = new_position;
 	start_pos = new_position;
 	end_pos = { start_pos.x + GetRandomValue(-gen_range, gen_range), start_pos.y + GetRandomValue(-gen_range, gen_range) };

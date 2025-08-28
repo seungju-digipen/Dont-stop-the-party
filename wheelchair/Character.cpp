@@ -43,18 +43,7 @@ void Character::Update(float delta_time, int map_width, int map_height)
 	{
 		rotation += rotation_speed * delta_time;
 	}
-	//if (IsKeyDown(KEY_W))
-	//{
-	//}
-	//if (IsKeyDown(KEY_LEFT_SHIFT))
-	//{
-	//	current_anim_state = CharacterAnimState::WALK_POPPER;
-	//}
-	//else
-	//{
-	//	current_anim_state = CharacterAnimState::RUN;
-	//	//current_anim_state = HasPopper() ? CharacterAnimState::WALK_POPPER : CharacterAnimState::WALK;
-	//}
+
 
 	float radians = (rotation - 90.0f) * DEG2RAD;
 
@@ -118,7 +107,7 @@ void Character::Update(float delta_time, int map_width, int map_height)
 		position.x = 0;
 	}
 
-	// std::cout << position.x << ", " << position.y << std::endl;
+
 }
 
 void Character::Draw()

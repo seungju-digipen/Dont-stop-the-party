@@ -6,14 +6,31 @@ Game::Game()
 {
 	InitWindow(screen_width, screen_height, "Don't Stop the party");
 	InitAudioDevice();
+	LoadSettings();
+	bgm_track_names = { "resources/party1.mp3", "resources/party2.mp3", "resources/party3.mp3" };
+
+	for (const char* path : bgm_track_names) {
+		Music track = LoadMusicStream(path);
+
+		if (!IsMusicReady(track)) {
+
+			TraceLog(LOG_ERROR, "fail to load music: %s", path);
+		}
+		bgm_tracks.push_back(track);
+	}
 	SetTargetFPS(60);
+	LoadRanking();
 
 	explosion_texture = LoadTexture("resources/Explosion.png");
 	light_texture = LoadRenderTexture(map_width, map_height);
-	bgm = LoadMusicStream("resources/party2.mp3");
 	shoot_sfx = LoadSound("resources/Boom1.wav");
 	PlayMusicStream(bgm);
 	hero.LoadResources();
+
+	ApplySettings();
+
+	current_screen = GameScreen::MAIN_MENU;
+	menu_index = 0;
 
 	camera.target = hero.GetPosition();
 	camera.offset = { (float)screen_width / 2.0f, (float)screen_height / 2.0f };
@@ -24,9 +41,11 @@ Game::Game()
 
 Game::~Game()
 {
+	SaveRanking();
+	SaveSettings();
 	UnloadTexture(explosion_texture);
 	UnloadRenderTexture(light_texture);
-	UnloadMusicStream(bgm);
+	for (Music& bgm : bgm_tracks) { UnloadMusicStream(bgm); }
 	UnloadSound(shoot_sfx);
 	hero.UnloadResources();
 	CloseAudioDevice();
@@ -56,10 +75,66 @@ void Game::ResetGame()
 	hero.SetAlive(true);
 	hero.GetPopper();
 
-
-	SeekMusicStream(bgm, 0.0f);
+	SeekMusicStream(bgm_tracks[settings.current_bgm_index], 0.0f);
 
 	InitGame();
+}
+
+bool Game::IsHighScore(int score)
+{
+	if (high_scores.size() < 5)
+	{
+		return true;
+	}
+	return score > high_scores.back().score;
+}
+
+void Game::LoadSettings()
+{
+	if (FileExists("setting.txt"))
+	{
+		const char* file_data = LoadFileText("setting.txt");
+		std::stringstream ss(file_data);
+		std::string line;
+
+		while (std::getline(ss, line))
+		{
+			if (line.empty()) continue;
+
+			std::stringstream line_ss(line);
+			std::string key, value;
+
+			if (std::getline(line_ss, key, ':') && std::getline(line_ss, value))
+			{
+				if (key == "bgm_volume") {
+					settings.bgm_volume = std::stof(value);
+				}
+				else if (key == "sfx_enabled") {
+					settings.sfx_enabled = std::stoi(value);
+				}
+				else if (key == "current_bgm_index") {
+					settings.current_bgm_index = std::stoi(value);
+				}
+			}
+		}
+		UnloadFileText((char*)file_data);
+	}
+}
+
+void Game::SaveSettings()
+{
+	std::string text_data = "";
+	text_data += "bgm_volume:" + std::to_string(settings.bgm_volume) + "\n";
+	text_data += "sfx_enabled:" + std::to_string(settings.sfx_enabled) + "\n";
+	text_data += "current_bgm_index:" + std::to_string(settings.current_bgm_index) + "\n";
+
+	SaveFileText("setting.txt", (char*)text_data.c_str());
+}
+
+void Game::ApplySettings()
+{
+	SetMusicVolume(bgm_tracks[settings.current_bgm_index], settings.bgm_volume);
+	PlayMusicStream(bgm_tracks[settings.current_bgm_index]);
 }
 
 void Game::SpawnConfetti(Vector2 position)
@@ -84,17 +159,102 @@ void Game::SpawnConfetti(Vector2 position)
 
 void Game::Run()
 {
-	while (!WindowShouldClose())
+	while (!WindowShouldClose() && current_screen != GameScreen::EXIT)
 	{
 		Update();
 		Draw();
 	}
 }
-
-void Game::Update()
+void Game::LoadRanking()
 {
+	high_scores.clear();
+	const char* file_data = LoadFileText("ranking.txt");
+
+	if (file_data != NULL)
+	{
+		std::stringstream ss(file_data);
+		std::string line;
+
+
+		while (std::getline(ss, line))
+		{
+			if (line.empty()) continue;
+
+
+			std::stringstream line_ss(line);
+			std::string score_str, name_str;
+
+			if (std::getline(line_ss, score_str, ',') && std::getline(line_ss, name_str))
+			{
+				high_scores.push_back({ name_str, std::stoi(score_str) });
+			}
+		}
+		UnloadFileText((char*)file_data);
+	}
+}
+
+
+void Game::SaveRanking()
+{
+	std::string text_data = "";
+	for (const auto& hs : high_scores)
+	{
+		text_data += std::to_string(hs.score) + "," + hs.name + "\n";
+	}
+
+	SaveFileText("ranking.txt", (char*)text_data.c_str());
+}
+void Game::AddScoreToRanking(HighScore new_hs)
+{
+	high_scores.push_back(new_hs);
+
+	std::sort(high_scores.begin(), high_scores.end(), [](const HighScore& a, const HighScore& b) {
+		return a.score > b.score;
+		});
+
+	if (high_scores.size() > 5)
+	{
+		high_scores.resize(5);
+	}
+}
+
+void Game::UpdateMainMenu()
+{
+	if (IsKeyPressed(KEY_S)) {
+		menu_index = (menu_index + 1) % 5;
+	}
+
+	if (IsKeyPressed(KEY_W)) {
+		menu_index = (menu_index - 1 + 5) % 5;
+	}
+
+
+	if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE)) {
+		switch (menu_index) {
+		case 0:
+			ResetGame();
+			current_screen = GameScreen::GAMEPLAY;
+			break;
+		case 1:
+			current_screen = GameScreen::RANKING_SCREEN;
+			break;
+		case 2:
+			current_screen = GameScreen::OPTIONS;
+			break;
+		case 3:
+			current_screen = GameScreen::HOW_TO_PLAY;
+			break;
+		case 4:
+			current_screen = GameScreen::EXIT;
+			break;
+		}
+	}
+}
+void Game::UpdateGameplay()
+{
+
 	float delta_time = GetFrameTime();
-	UpdateMusicStream(bgm);
+	UpdateMusicStream(bgm_tracks[settings.current_bgm_index]);
 
 	if (IsKeyPressed(KEY_R)) {
 		ResetGame();
@@ -107,7 +267,10 @@ void Game::Update()
 			hero.UsePopper();
 			PartyPopper newPopper(hero.GetPosition(), hero.GetRotation(), hero.GetSpeed(), explosion_texture);
 			partyPoppers.push_back(newPopper);
-			PlaySound(shoot_sfx);
+			if (settings.sfx_enabled)
+			{
+				PlaySound(shoot_sfx);
+			}
 			SpawnConfetti(hero.GetPosition());
 			float radians = (hero.GetRotation() - 90.0f) * DEG2RAD;
 			Vector2 backward_vector = { -cosf(radians), -sinf(radians) };
@@ -115,45 +278,7 @@ void Game::Update()
 
 			shake_timer = 0.2f;
 		}
-	}
 
-	if (GetRandomValue(0, 30) == 0)
-	{
-		spotlights.emplace_back(map_width, map_height);
-	}
-
-	hero.Update(delta_time, map_width, map_height);
-	for (auto& light : spotlights) { light.Update(delta_time); }
-	for (auto& enemy : enemies) { enemy.Update(delta_time, map_width, map_height); }
-	for (auto& popper : partyPoppers) { popper.Update(delta_time, map_width, map_height); }
-	for (auto& p : confettiParticles)
-	{
-
-		p.position.x += p.velocity.x * delta_time;
-		p.position.y += p.velocity.y * delta_time;
-
-
-		p.velocity.y += gravity * delta_time;
-
-
-		p.rotation += p.angular_velocity * delta_time;
-
-
-		p.life_span -= delta_time;
-	}
-
-
-	confettiParticles.erase(
-		std::remove_if(confettiParticles.begin(), confettiParticles.end(), [](const ConfettiParticle& p) {
-			return p.life_span <= 0.0f;
-			}),
-		confettiParticles.end()
-	);
-
-
-
-	if (hero.IsAlive())
-	{
 		for (auto& popper : partyPoppers)
 		{
 			if (!popper.IsActive()) continue;
@@ -175,22 +300,45 @@ void Game::Update()
 
 	}
 
+	if (GetRandomValue(0, 30) == 0)
+	{
+		spotlights.emplace_back(map_width, map_height);
+	}
+
+	hero.Update(delta_time, map_width, map_height);
+	for (auto& light : spotlights) { light.Update(delta_time); }
+	for (auto& enemy : enemies) { enemy.Update(delta_time, map_width, map_height); }
+	for (auto& popper : partyPoppers) { popper.Update(delta_time, map_width, map_height); }
+	for (auto& p : confettiParticles)
+	{
+		p.position.x += p.velocity.x * delta_time;
+		p.position.y += p.velocity.y * delta_time;
+		p.velocity.y += gravity * delta_time;
+		p.rotation += p.angular_velocity * delta_time;
+		p.life_span -= delta_time;
+	}
+
+
+	confettiParticles.erase(
+		std::remove_if(confettiParticles.begin(), confettiParticles.end(), [](const ConfettiParticle& p) {
+			return p.life_span <= 0.0f;
+			}),
+		confettiParticles.end()
+	);
 
 	spotlights.erase(
 		std::remove_if(spotlights.begin(), spotlights.end(), [](const Spotlight& s) { return !s.IsActive(); }),
 		spotlights.end());
 
-
 	for (int i = partyPoppers.size() - 1; i >= 0; i--)
 	{
 		if (!partyPoppers[i].IsActive())
 		{
-
 			if (!partyPoppers[i].DidHit())
 			{
 				hero.SetAlive(false);
+				UpdateRanking();
 			}
-
 			partyPoppers.erase(partyPoppers.begin() + i);
 		}
 	}
@@ -215,13 +363,138 @@ void Game::Update()
 		camera.offset.y = screen_height / 2.0f;
 	}
 }
-void Game::Draw()
+void Game::UpdateRanking()
 {
-	BeginDrawing();
-	ClearBackground(BLACK);
 
+	if (IsHighScore(score))
+	{
+
+		current_screen = GameScreen::NAME_ENTRY;
+		selected_letter_index = 0;
+		player_name[0] = 'A';
+		player_name[1] = 'A';
+		player_name[2] = 'A';
+		player_name[3] = '\0';
+	}
+	else
+	{
+		current_screen = GameScreen::MAIN_MENU;
+	}
+}
+void Game::UpdateRankingScreen()
+{
+	if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE))
+	{
+		current_screen = GameScreen::MAIN_MENU;
+	}
+}
+void Game::UpdateNameEntry()
+{
+	if (IsKeyPressed(KEY_D))
+	{
+		selected_letter_index = (selected_letter_index + 1) % 3;
+	}
+	if (IsKeyPressed(KEY_A))
+	{
+		selected_letter_index = (selected_letter_index - 1 + 3) % 3;
+	}
+
+	if (IsKeyPressed(KEY_W))
+	{
+		player_name[selected_letter_index]++;
+		if (player_name[selected_letter_index] > 'Z')
+		{
+			player_name[selected_letter_index] = 'A';
+		}
+	}
+	if (IsKeyPressed(KEY_S))
+	{
+		player_name[selected_letter_index]--;
+		if (player_name[selected_letter_index] < 'A')
+		{
+			player_name[selected_letter_index] = 'Z';
+		}
+	}
+
+	if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE))
+	{
+		AddScoreToRanking({ std::string(player_name), score });
+		current_screen = GameScreen::MAIN_MENU;
+	}
+}
+void Game::Update()
+{
+	switch (current_screen) {
+	case GameScreen::MAIN_MENU:
+		UpdateMainMenu();
+		break;
+	case GameScreen::GAMEPLAY:
+		UpdateGameplay();
+		break;
+	case GameScreen::NAME_ENTRY:
+		UpdateNameEntry();
+	case GameScreen::RANKING_SCREEN:
+		UpdateRankingScreen();
+		break;
+	case GameScreen::OPTIONS:
+		UpdateOptions();
+		break;
+	case GameScreen::HOW_TO_PLAY:
+		UpdateHowToPlay();
+		break;
+	default:
+		break;
+	}
+}
+
+void Game::UpdateOptions()
+{
+
+	if (IsKeyPressed(KEY_S)) { options_menu_index = (options_menu_index + 1) % 3; }
+	if (IsKeyPressed(KEY_W)) { options_menu_index = (options_menu_index - 1 + 3) % 3; }
+
+
+	if (IsKeyDown(KEY_A) || IsKeyDown(KEY_D)) {
+		float direction = IsKeyDown(KEY_D) ? 1.0f : -1.0f;
+
+		switch (options_menu_index) {
+		case 0:
+			if (IsKeyPressed(KEY_A) || IsKeyPressed(KEY_D)) {
+				StopMusicStream(bgm_tracks[settings.current_bgm_index]);
+				settings.current_bgm_index = (settings.current_bgm_index + (int)direction + bgm_tracks.size()) % bgm_tracks.size();
+				PlayMusicStream(bgm_tracks[settings.current_bgm_index]);
+			}
+			break;
+		case 1:
+			settings.bgm_volume += 0.05f * direction;
+			if (settings.bgm_volume > 1.0f) settings.bgm_volume = 1.0f;
+			if (settings.bgm_volume < 0.0f) settings.bgm_volume = 0.0f;
+			SetMusicVolume(bgm_tracks[settings.current_bgm_index], settings.bgm_volume);
+			break;
+		case 2:
+			if (IsKeyPressed(KEY_A) || IsKeyPressed(KEY_D)) {
+				settings.sfx_enabled = !settings.sfx_enabled;
+			}
+			break;
+		}
+	}
+
+
+	if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE)) {
+		current_screen = GameScreen::MAIN_MENU;
+	}
+}
+
+void Game::UpdateHowToPlay()
+{
+	if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE)) {
+		current_screen = GameScreen::MAIN_MENU;
+	}
+}
+
+void Game::DrawGameplay()
+{
 	BeginMode2D(camera);
-
 
 	for (int x = 0; x <= map_width; x += grid_spacing)
 	{
@@ -235,12 +508,6 @@ void Game::Draw()
 	for (auto& enemy : enemies) { enemy.Draw(); }
 	if (hero.IsAlive()) { hero.Draw(); }
 	for (auto& popper : partyPoppers) { popper.Draw(); }
-
-	for (const auto& p : confettiParticles)
-	{
-		Rectangle particle_rec = { p.position.x, p.position.y, p.size, p.size };
-		DrawRectanglePro(particle_rec, { p.size / 2, p.size / 2 }, p.rotation, p.color);
-	}
 
 	BeginBlendMode(BLEND_ADDITIVE);
 
@@ -271,5 +538,151 @@ void Game::Draw()
 		DrawText("Press [R] to Restart", GetScreenWidth() / 2 - MeasureText("Press [R] to Restart", 20) / 2, GetScreenHeight() / 2 + 30, 20, GRAY);
 	}
 
+}
+void Game::DrawMainMenu()
+{
+	const char* menu_items[] = { "START GAME", "RANKING", "OPTION","HOW TO PLAY", "EXIT" };
+	int text_size = 40;
+	int start_y = screen_height / 2 - 100;
+
+	DrawText("Don't Stop the Party", screen_width / 2 - MeasureText("Don't Stop the Party", 60) / 2, start_y - 80, 60, WHITE);
+
+	for (int i = 0; i < 5; i++) {
+		Color color = (i == menu_index) ? YELLOW : GRAY;
+		DrawText(menu_items[i], screen_width / 2 - MeasureText(menu_items[i], text_size) / 2, start_y + i * 50, text_size, color);
+	}
+}
+void Game::DrawNameEntry()
+{
+	DrawText("NEW HIGH SCORE!", screen_width / 2 - MeasureText("NEW HIGH SCORE!", 40) / 2, 150, 40, GOLD);
+	DrawText(TextFormat("YOUR SCORE: %i", score), screen_width / 2 - MeasureText(TextFormat("YOUR SCORE: %i", score), 20) / 2, 210, 20, LIGHTGRAY);
+	DrawText("ENTER YOUR NAME (3 LETTERS)", screen_width / 2 - MeasureText("ENTER YOUR NAME (3 LETTERS)", 20) / 2, 300, 20, GRAY);
+
+	int text_size = 50;
+	int start_x = screen_width / 2 - MeasureText("A B C", text_size) / 2;
+	int y_pos = 350;
+
+	DrawText(TextFormat("%c %c %c", player_name[0], player_name[1], player_name[2]),
+		start_x, y_pos, text_size, WHITE);
+
+	if ((int)(GetTime() * 2.0f) % 2 == 0)
+	{
+		int cursor_x = start_x + (MeasureText("A ", text_size) * selected_letter_index);
+		DrawText("_", cursor_x, y_pos + 10, text_size, YELLOW);
+	}
+}
+void Game::DrawRankingScreen()
+{
+	int start_y = 150;
+	DrawText("HALL OF FAME", screen_width / 2 - MeasureText("HALL OF FAME", 60) / 2, start_y - 80, 60, GOLD);
+
+	if (high_scores.empty())
+	{
+		DrawText("NO SCORES YET", screen_width / 2 - MeasureText("NO SCORES YET", 30) / 2, start_y + 50, 30, GRAY);
+	}
+	else
+	{
+		for (int i = 0; i < high_scores.size(); i++)
+		{
+			Color color = (i == 0) ? YELLOW : WHITE;
+			const char* text = TextFormat("%d. %s ............ %d", i + 1, high_scores[i].name.c_str(), high_scores[i].score);
+			DrawText(text, screen_width / 2 - MeasureText(text, 40) / 2, start_y + i * 50, 40, color);
+		}
+	}
+
+	DrawText("Press ENTER to return to Menu", screen_width / 2 - MeasureText("Press ENTER to return to Menu", 20) / 2, screen_height - 50, 20, GRAY);
+
+}
+
+void Game::DrawOptions()
+{
+	int start_y = 150;
+	DrawText("OPTIONS", screen_width / 2 - MeasureText("OPTIONS", 60) / 2, start_y - 80, 60, WHITE);
+
+
+	DrawText("BGM", 150, start_y, 40, (options_menu_index == 0) ? YELLOW : GRAY);
+	DrawText(TextFormat("< %s >", GetFileNameWithoutExt(bgm_track_names[settings.current_bgm_index])), 450, start_y, 40, (options_menu_index == 0) ? YELLOW : GRAY);
+
+
+	DrawText("VOLUME", 150, start_y + 60, 40, (options_menu_index == 1) ? YELLOW : GRAY);
+	DrawRectangle(450, start_y + 60, 200, 40, LIGHTGRAY);
+	DrawRectangle(450, start_y + 60, (int)(settings.bgm_volume * 200.0f), 40, (options_menu_index == 1) ? YELLOW : WHITE);
+
+
+	DrawText("SFX", 150, start_y + 120, 40, (options_menu_index == 2) ? YELLOW : GRAY);
+	DrawText(settings.sfx_enabled ? "ON" : "OFF", 450, start_y + 120, 40, (options_menu_index == 2) ? YELLOW : GRAY);
+
+	DrawText("Press ENTER to return to Menu", screen_width / 2 - MeasureText("Press ENTER to return to Menu", 20) / 2, screen_height - 50, 20, GRAY);
+}
+void Game::DrawHowToPlay()
+{
+
+	int start_y = 30;
+	int start_x = 30;
+	int line_spacing_body = 30;
+	int line_spacing_header = 40;
+	int section_spacing = 20;
+
+	int current_y = start_y;
+
+	// --- Objective ---
+	DrawText("Objective", start_x, current_y, 30, GOLD);
+	current_y += line_spacing_header;
+	DrawText("The goal is to celebrate the party participants by hitting them", start_x, current_y, 20, LIGHTGRAY);
+	current_y += line_spacing_body;
+	DrawText("with a Party Popper to score points.", start_x, current_y, 20, LIGHTGRAY);
+	current_y += line_spacing_body;
+	DrawText("You only have one shot. You must hit a participant to get another popper.", start_x, current_y, 20, WHITE);
+	current_y += line_spacing_body;
+	DrawText("If you miss and the popper hits nothing, the game is over.", start_x, current_y, 20, RED);
+	current_y += line_spacing_header + section_spacing;
+
+	// --- Controls ---
+	DrawText("Controls", start_x, current_y, 30, GOLD);
+	current_y += line_spacing_header;
+	DrawText("- A / D: Rotate Left / Right", start_x, current_y, 20, LIGHTGRAY);
+	current_y += line_spacing_body;
+	DrawText("- Spacebar: Brake", start_x, current_y, 20, LIGHTGRAY);
+	current_y += line_spacing_body;
+	DrawText("- Enter: Fire Party Popper", start_x, current_y, 20, LIGHTGRAY);
+	current_y += line_spacing_body;
+	DrawText("- R: Restart", start_x, current_y, 20, LIGHTGRAY);
+	current_y += line_spacing_header + section_spacing;
+
+	// --- Score ---
+	DrawText("Score", start_x, current_y, 30, GOLD);
+	current_y += line_spacing_header;
+	DrawText("Hitting a participant earns a base score.", start_x, current_y, 20, LIGHTGRAY);
+	current_y += line_spacing_body;
+	DrawText("The faster you are moving, the higher the bonus score.", start_x, current_y, 20, LIGHTGRAY);
+
+	// --- Return to Menu ---
+	DrawText("Press ENTER to return to Menu", screen_width / 2 - MeasureText("Press ENTER to return to Menu", 20) / 2, screen_height - 40, 20, GRAY);
+}
+
+void Game::Draw()
+{
+	BeginDrawing();
+	ClearBackground(BLACK);
+	switch (current_screen) {
+	case GameScreen::MAIN_MENU:
+		DrawMainMenu();
+		break;
+	case GameScreen::GAMEPLAY:
+		DrawGameplay();
+		break;
+	case GameScreen::NAME_ENTRY:
+		DrawNameEntry();
+		break;
+	case GameScreen::RANKING_SCREEN:
+		DrawRankingScreen();
+		break;
+	case GameScreen::OPTIONS:
+		DrawOptions();
+		break;
+	case GameScreen::HOW_TO_PLAY:
+		DrawHowToPlay();
+		break;
+	}
 	EndDrawing();
 }
