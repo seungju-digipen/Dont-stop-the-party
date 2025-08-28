@@ -6,5 +6,6 @@ enum class GameScreen {
 	NAME_ENTRY,
 	OPTIONS,
 	RANKING_SCREEN,
-	EXIT
+	EXIT,
+	GAME_OVER
 };

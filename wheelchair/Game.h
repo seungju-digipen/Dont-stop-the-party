@@ -48,6 +48,7 @@ private:
 	void UpdateNameEntry();
 	void UpdateOptions();
 	void UpdateHowToPlay();
+	void UpdateGameOver();
 	void Update();
 
 	void DrawMainMenu();
@@ -56,6 +57,7 @@ private:
 	void DrawNameEntry();
 	void DrawOptions();
 	void DrawHowToPlay();
+	void DrawGameOver();
 	void Draw();
 
 	void InitGame();
@@ -80,8 +82,6 @@ private:
 	std::vector<HighScore> high_scores;
 
 	GameSettings settings;
-	std::vector<Music> bgm_tracks;
-	std::vector<const char*> bgm_track_names;
 	int options_menu_index{ 0 };
 
 	const float gravity = 400.0f;
@@ -103,6 +103,9 @@ private:
 
 
 	Sound shoot_sfx;
-	Sound people_sound;
+	//Sound people_sound;
+	std::vector<Music> bgm_tracks;
+	std::vector<Sound> score_sfxs;
+	std::vector<const char*> bgm_track_names;
 	RenderTexture2D light_texture;
 };
