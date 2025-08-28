@@ -86,6 +86,10 @@ private:
 
 	const float gravity = 400.0f;
 
+	Texture2D player_texture;
+	Texture2D enemy_texture;
+	Texture2D explosion_texture;
+
 	Character hero;
 	std::vector<Enemy> enemies;
 	int number_of_enemies;
@@ -97,8 +101,8 @@ private:
 	float shake_timer = 0.0f;
 	float shake_intensity = 15.0f;
 
-	Texture2D explosion_texture;
-	Music bgm;
+
 	Sound shoot_sfx;
+	Sound people_sound;
 	RenderTexture2D light_texture;
 };

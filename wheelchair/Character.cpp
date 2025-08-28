@@ -1,29 +1,21 @@
 #include "Character.h"
 
-Character::Character()
+Character::Character(Texture2D texture)
 {
 	popper = true;
 	alive = true;
-	hitbox = { (position.x - (size / 2)), (position.y - (size / 2)), size, size };
-}
-Character::~Character()
-{
-}
-
-void Character::LoadResources()
-{
-	sprite_sheet = LoadTexture("resources/PlayerSheet.png");
 	animations[CharacterAnimState::IDLE] = { 0, 1, 1.0f / 12.0f };
 	animations[CharacterAnimState::WALK] = { 0, 6, 1.0f / 12.0f };
 	animations[CharacterAnimState::RUN] = { 2, 6, 1.0f / 16.0f };
 	animations[CharacterAnimState::WALK_POPPER] = { 1, 1, 1.0f / 1.0f };
 	current_anim_state = CharacterAnimState::IDLE;
 	prev_anim_state = CharacterAnimState::IDLE;
+	hitbox = { (position.x - (size / 2)), (position.y - (size / 2)), size, size };
 }
-void Character::UnloadResources()
+Character::~Character()
 {
-	UnloadTexture(sprite_sheet);
 }
+
 void Character::SetPosition(Vector2 new_position)
 {
 	position.x = new_position.x;
@@ -124,11 +116,18 @@ void Character::Draw()
 	Vector2 origin = { size / 2, size / 2 };
 
 	DrawTexturePro(sprite_sheet, source_rec, dest_rec, origin, rotation, WHITE);
-	
+
 }
 
 void Character::Knockback(Vector2 direction, float force)
 {
 	position.x += direction.x * force;
 	position.y += direction.y * force;
+}
+
+void Character::SetTexture(Texture2D texture)
+{
+	sprite_sheet = texture;
+	frame_width = 64.0f;
+	frame_height = 64.0f;
 }

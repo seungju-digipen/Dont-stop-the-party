@@ -1,7 +1,7 @@
 #include "Game.h"
 
 Game::Game()
-	: screen_width(800), screen_height(600), map_width(2400), map_height(1800), number_of_enemies(50),
+	: screen_width(800), screen_height(600), map_width(2400), map_height(1800), hero(player_texture),number_of_enemies(50),
 	shake_timer(0.0f), shake_intensity(15.0f)
 {
 	InitWindow(screen_width, screen_height, "Don't Stop the party");
@@ -21,11 +21,13 @@ Game::Game()
 	SetTargetFPS(60);
 	LoadRanking();
 
+	player_texture = LoadTexture("resources/PlayerSheet.png");
+	enemy_texture = LoadTexture("resources/People.png");
 	explosion_texture = LoadTexture("resources/Explosion.png");
+	hero.SetTexture(player_texture);
 	light_texture = LoadRenderTexture(map_width, map_height);
 	shoot_sfx = LoadSound("resources/Boom1.wav");
-	PlayMusicStream(bgm);
-	hero.LoadResources();
+	people_sound = LoadSound("resources/thankyou.mp3");
 
 	ApplySettings();
 
@@ -43,11 +45,13 @@ Game::~Game()
 {
 	SaveRanking();
 	SaveSettings();
+	UnloadTexture(player_texture);
+	UnloadTexture(enemy_texture);
 	UnloadTexture(explosion_texture);
 	UnloadRenderTexture(light_texture);
 	for (Music& bgm : bgm_tracks) { UnloadMusicStream(bgm); }
 	UnloadSound(shoot_sfx);
-	hero.UnloadResources();
+	UnloadSound(people_sound);
 	CloseAudioDevice();
 	CloseWindow();
 }
@@ -57,8 +61,8 @@ void Game::InitGame()
 	hero.SetPosition({ map_width / 2.0f, map_height / 2.0f });
 	for (int i = 0; i < number_of_enemies; i++)
 	{
-
-		Enemy new_enemy;
+		Enemy new_enemy(enemy_texture);
+		new_enemy.SetTexture(enemy_texture);
 		Vector2 random_position = { (float)GetRandomValue(new_enemy.GetGenRagne(), map_width - new_enemy.GetGenRagne()), (float)GetRandomValue(new_enemy.GetGenRagne(), map_height - new_enemy.GetGenRagne()) };
 		new_enemy.SetPosition(random_position);
 		enemies.push_back(new_enemy);
@@ -293,6 +297,7 @@ void Game::UpdateGameplay()
 					enemy.GotHit();
 					hero.GetPopper();
 					score += (hero.GetSpeed() > hero.GetMinSpeed()) ? (1000 + (((int)hero.GetSpeed() / 10) * 10)) : 500;
+					PlaySound(people_sound);
 					break;
 				}
 			}
@@ -433,6 +438,7 @@ void Game::Update()
 		break;
 	case GameScreen::NAME_ENTRY:
 		UpdateNameEntry();
+		break;
 	case GameScreen::RANKING_SCREEN:
 		UpdateRankingScreen();
 		break;
