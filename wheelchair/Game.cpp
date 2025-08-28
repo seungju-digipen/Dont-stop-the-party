@@ -549,6 +549,14 @@ void Game::UpdateGameOver()
 
 void Game::DrawGameplay()
 {
+    BeginTextureMode(light_texture);
+    ClearBackground(BLANK);
+    for (auto &light : spotlights)
+    {
+        light.Draw(map_width, map_height);
+    }
+    EndTextureMode();
+
     BeginMode2D(camera);
 
     for (int x = 0; x <= map_width; x += grid_spacing)
