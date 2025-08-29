@@ -365,8 +365,8 @@ void Game::UpdateGameplay()
         {
             if (!partyPoppers[i].DidHit())
             {
-                hero.SetAlive(false);
                 UpdateRanking();
+                return;
             }
             partyPoppers.erase(partyPoppers.begin() + i);
         }
@@ -375,10 +375,7 @@ void Game::UpdateGameplay()
     confettiParticles.erase(std::remove_if(confettiParticles.begin(), confettiParticles.end(),
                                            [](const ConfettiParticle &p) { return p.life_span <= 0.0f; }),
                             confettiParticles.end());
-    if (!hero.IsAlive())
-    {
-        current_screen = GameScreen::GAME_OVER;
-    }
+ 
     camera.target = hero.GetPosition();
     if (shake_timer > 0.0f)
     {
@@ -407,7 +404,7 @@ void Game::UpdateRanking()
     }
     else
     {
-        current_screen = GameScreen::MAIN_MENU;
+        current_screen = GameScreen::GAME_OVER;
     }
 }
 void Game::UpdateRankingScreen()
